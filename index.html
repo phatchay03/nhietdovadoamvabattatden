@@ -1,0 +1,205 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard - Smart Home Control</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .text-huge {
+            font-size: clamp(4rem, 10vw, 8rem);
+            line-height: 1;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .light-on {
+            background-color: #fca311;
+            box-shadow: 0 0 20px #fca311;
+        }
+
+        .light-off {
+            background-color: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl">
+
+        <!-- Card Nhiệt độ -->
+        <div class="bg-white border-4 border-slate-100 rounded-[3rem] p-10 shadow-xl flex flex-col items-center justify-center transition-all duration-300 hover:border-slate-200">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="p-3 bg-orange-50 rounded-2xl">
+                    <i data-lucide="thermometer" class="w-8 h-8 text-orange-500" stroke-width="2.5"></i>
+                </div>
+                <span class="text-xl font-black uppercase tracking-widest text-slate-400">Nhiệt độ</span>
+            </div>
+            <div class="flex items-baseline">
+                <span id="temp-value" class="text-huge font-black tracking-tighter text-slate-900 tabular-nums">--</span>
+                <span class="text-4xl font-bold text-slate-300 ml-2">°C</span>
+            </div>
+        </div>
+
+        <!-- Card Độ ẩm -->
+        <div class="bg-white border-4 border-slate-100 rounded-[3rem] p-10 shadow-xl flex flex-col items-center justify-center transition-all duration-300 hover:border-slate-200">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="p-3 bg-blue-50 rounded-2xl">
+                    <i data-lucide="droplets" class="w-8 h-8 text-blue-500" stroke-width="2.5"></i>
+                </div>
+                <span class="text-xl font-black uppercase tracking-widest text-slate-400">Độ ẩm</span>
+            </div>
+            <div class="flex items-baseline">
+                <span id="humidity-value" class="text-huge font-black tracking-tighter text-slate-900 tabular-nums">--</span>
+                <span class="text-4xl font-bold text-slate-300 ml-2">%</span>
+            </div>
+        </div>
+
+        <!-- Card Điều khiển Đèn -->
+        <div id="light-card" class="bg-white border-4 border-slate-100 rounded-[3rem] p-10 shadow-xl flex flex-col items-center justify-center transition-all duration-300 hover:border-slate-200">
+            <div class="flex items-center gap-4 mb-8">
+                <div id="light-icon-bg" class="p-3 bg-slate-50 rounded-2xl transition-colors duration-500">
+                    <i id="light-icon" data-lucide="lightbulb" class="w-8 h-8 text-slate-400 transition-colors duration-500" stroke-width="2.5"></i>
+                </div>
+                <span class="text-xl font-black uppercase tracking-widest text-slate-400">Đèn Phòng</span>
+            </div>
+
+            <button id="btn-light" class="relative inline-flex items-center h-20 rounded-full w-40 px-2 transition-colors duration-500 focus:outline-none bg-slate-200">
+                <span id="btn-slider" class="inline-block w-16 h-16 transform bg-white rounded-full transition-transform duration-500 translate-x-0 shadow-lg"></span>
+                <span id="btn-text" class="absolute right-6 font-black text-slate-400 uppercase tracking-tight text-sm">OFF</span>
+            </button>
+
+            <p id="light-status-text" class="mt-6 text-slate-400 font-bold uppercase text-xs tracking-[0.2em]">Đang ngoại tuyến</p>
+        </div>
+
+    </div>
+
+    <!-- Tải thư viện Era Widget -->
+    <script src="https://www.unpkg.com/@eohjsc/era-widget@1.1.3/src/index.js"></script>
+    <script>
+        // Khởi tạo icon Lucide ban đầu
+        lucide.createIcons();
+
+        // Các phần tử hiển thị
+        const tempElement = document.getElementById('temp-value');
+        const humiElement = document.getElementById('humidity-value');
+
+        // Phần tử Đèn
+        const btnLight = document.getElementById('btn-light');
+        const btnSlider = document.getElementById('btn-slider');
+        const btnText = document.getElementById('btn-text');
+        const lightIcon = document.getElementById('light-icon');
+        const lightIconBg = document.getElementById('light-icon-bg');
+        const statusText = document.getElementById('light-status-text');
+
+        // Biến lưu cấu hình
+        let configTemp = null;
+        let configHumi = null;
+        let configLight = null;
+        let currentLightValue = 0;
+
+        const eraWidget = new EraWidget();
+        eraWidget.init({
+            needRealtimeConfigs: true,
+            maxRealtimeConfigsCount: 3, // Tăng lên 3 cho Nhiệt độ, Độ ẩm và Đèn
+
+            onConfiguration: (configuration) => {
+                // Giả định thứ tự trên Era Dashboard:
+                // Index 0: Nhiệt độ
+                // Index 1: Độ ẩm
+                // Index 2: Đèn (VIRTUAL PIN / GPIO)
+                configTemp = configuration.realtime_configs[0];
+                configHumi = configuration.realtime_configs[1];
+                configLight = configuration.realtime_configs[2];
+
+                if (configLight) {
+                    statusText.innerText = "Sẵn sàng điều khiển";
+                }
+            },
+
+            onValues: (values) => {
+                // Cập nhật Nhiệt độ
+                if (configTemp && values[configTemp.id]) {
+                    tempElement.innerText = values[configTemp.id].value;
+                }
+
+                // Cập nhật Độ ẩm
+                if (configHumi && values[configHumi.id]) {
+                    humiElement.innerText = values[configHumi.id].value;
+                }
+
+                // Cập nhật trạng thái Đèn từ Server (Phản hồi thời gian thực)
+                if (configLight && values[configLight.id]) {
+                    const value = parseInt(values[configLight.id].value);
+                    currentLightValue = value;
+                    updateLightUI(value);
+                }
+            }
+        });
+
+        // Hàm cập nhật giao diện Đèn
+        function updateLightUI(isOn) {
+            if (isOn === 1) {
+                // Trạng thái BẬT
+                btnLight.classList.remove('bg-slate-200');
+                btnLight.classList.add('bg-orange-400');
+                btnSlider.classList.add('translate-x-20');
+                btnText.innerText = "ON";
+                btnText.classList.remove('right-6', 'text-slate-400');
+                btnText.classList.add('left-6', 'text-white');
+
+                lightIcon.classList.remove('text-slate-400');
+                lightIcon.classList.add('text-orange-500');
+                lightIconBg.classList.remove('bg-slate-50');
+                lightIconBg.classList.add('bg-orange-100');
+                statusText.innerText = "Đèn đang bật";
+                statusText.classList.add('text-orange-500');
+            } else {
+                // Trạng thái TẮT
+                btnLight.classList.remove('bg-orange-400');
+                btnLight.classList.add('bg-slate-200');
+                btnSlider.classList.remove('translate-x-20');
+                btnText.innerText = "OFF";
+                btnText.classList.remove('left-6', 'text-white');
+                btnText.classList.add('right-6', 'text-slate-400');
+
+                lightIcon.classList.remove('text-orange-500');
+                lightIcon.classList.add('text-slate-400');
+                lightIconBg.classList.remove('bg-orange-100');
+                lightIconBg.classList.add('bg-slate-50');
+                statusText.innerText = "Đèn đang tắt";
+                statusText.classList.remove('text-orange-500');
+            }
+        }
+
+        // Sự kiện bấm nút điều khiển
+        btnLight.addEventListener('click', () => {
+            if (!configLight) return;
+
+            // Đảo trạng thái: nếu đang 1 thì gửi 0, nếu đang 0 thì gửi 1
+            const newValue = currentLightValue === 1 ? 0 : 1;
+
+            // Gửi lệnh lên Era Platform
+            eraWidget.triggerAction(configLight.id, newValue);
+
+            // Cập nhật UI tạm thời để tạo cảm giác mượt mà (sẽ được onValues xác nhận lại)
+            updateLightUI(newValue);
+            currentLightValue = newValue;
+        });
+    </script>
+</body>
+</html>
