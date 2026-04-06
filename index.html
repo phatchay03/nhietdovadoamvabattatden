@@ -10,7 +10,11 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
         .text-huge {
             font-size: clamp(4rem, 10vw, 8rem);
             line-height: 1;
@@ -63,7 +67,7 @@
                 <span id="btn-slider" class="inline-block w-16 h-16 transform bg-white rounded-full transition-transform duration-500 translate-x-0 shadow-lg pointer-events-none"></span>
                 <span id="btn-text" class="absolute right-6 font-black text-slate-400 uppercase tracking-tight text-sm pointer-events-none">OFF</span>
             </button>
-            
+
             <p id="light-status-text" class="mt-6 text-slate-400 font-bold uppercase text-xs tracking-[0.2em]">Đang chờ kết nối...</p>
         </div>
 
@@ -89,8 +93,8 @@
         const eraWidget = new EraWidget();
         eraWidget.init({
             needRealtimeConfigs: true,
-            maxRealtimeConfigsCount: 3, 
-            
+            maxRealtimeConfigsCount: 3,
+
             onConfiguration: (configuration) => {
                 console.log("Cấu hình nhận được:", configuration);
                 configTemp = configuration.realtime_configs[0];
@@ -108,7 +112,7 @@
 
             onValues: (values) => {
                 console.log("Giá trị mới:", values);
-                
+
                 if (configTemp && values[configTemp.id]) {
                     tempElement.innerText = values[configTemp.id].value;
                 }
@@ -133,7 +137,7 @@
                 btnText.innerText = "ON";
                 btnText.classList.replace('right-6', 'left-6');
                 btnText.classList.replace('text-slate-400', 'text-white');
-                
+
                 lightIcon.classList.replace('text-slate-400', 'text-orange-500');
                 lightIconBg.classList.replace('bg-slate-50', 'bg-orange-100');
                 statusText.innerText = "Đèn đang bật";
@@ -161,10 +165,10 @@
             // Đảo trạng thái
             const newValue = currentLightValue === 1 ? 0 : 1;
             console.log("Gửi lệnh điều khiển:", newValue);
-            
+
             // Gửi action đến ID chính xác của đèn
             eraWidget.triggerAction(configLight.id, newValue);
-            
+
             // Cập nhật giao diện ngay lập tức để người dùng thấy phản hồi
             currentLightValue = newValue;
             updateLightUI(newValue);
