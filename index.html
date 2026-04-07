@@ -22,8 +22,8 @@
         
         /* Hiệu ứng hào quang màu vàng khi đèn bật */
         .led-glow-on {
-            box-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
-            border: 2px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.5);
+            border: 2px solid rgba(245, 158, 11, 0.3) !important;
         }
 
         /* Animation nhẹ cho icon khi bật */
@@ -33,7 +33,7 @@
 
         @keyframes pulse-yellow {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
     </style>
@@ -154,8 +154,10 @@
                 if (configHumi && values[configHumi.id]) {
                     humiElement.innerText = values[configHumi.id].value;
                 }
+                // Xử lý giá trị LED từ Widget (ép kiểu về số để so sánh chính xác)
                 if (configLed && values[configLed.id]) {
-                    const isPowered = values[configLed.id].value === 1 || values[configLed.id].value === "1" || values[configLed.id].value === true;
+                    const val = values[configLed.id].value;
+                    const isPowered = (val == 1 || val === "1" || val === true);
                     updateLedUI(isPowered);
                 }
             }
@@ -166,23 +168,24 @@
                 ledStatusText.innerText = 'Đang bật';
                 ledStatusText.className = 'text-amber-500 font-bold uppercase tracking-wider transition-colors duration-500';
 
-                // Thay đổi icon sang Lightbulb (On) và màu vàng
+                // Thay đổi icon sang Lightbulb (On - Không có gạch) và màu vàng hổ phách
                 ledIcon.setAttribute('data-lucide', 'lightbulb');
                 ledIcon.className = 'w-12 h-12 text-amber-500 transition-all duration-500 pulse-yellow';
 
-                // Thay đổi background sang màu vàng nhạt và thêm hiệu ứng đổ bóng
+                // Thay đổi background sang màu vàng nhạt và thêm hiệu ứng hào quang rực rỡ
                 ledIconBg.className = 'p-6 bg-amber-50 rounded-[2rem] transition-all duration-500 led-glow-on';
             } else {
                 ledStatusText.innerText = 'Đang tắt';
                 ledStatusText.className = 'text-slate-500 font-bold uppercase tracking-wider transition-colors duration-500';
 
-                // Thay đổi icon sang Lightbulb Off và màu xám
+                // Thay đổi icon sang Lightbulb-off (Có gạch) và màu xám
                 ledIcon.setAttribute('data-lucide', 'lightbulb-off');
                 ledIcon.className = 'w-12 h-12 text-slate-400 transition-all duration-500';
 
-                // Trả về background mặc định
+                // Trả về background mặc định khi tắt
                 ledIconBg.className = 'p-6 bg-slate-100 rounded-[2rem] transition-all duration-500 border-2 border-transparent';
             }
+            // Vẽ lại các icon để cập nhật thay đổi attribute data-lucide
             lucide.createIcons();
         }
 
